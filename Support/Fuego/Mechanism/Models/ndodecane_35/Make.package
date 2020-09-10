@@ -1,0 +1,13 @@
+CEXE_headers+=chemistry_file.H
+
+CEXE_sources+=ndodecane_35.cpp
+
+fEXE_sources += ckwc.f
+f90EXE_sources += ckwc_wrapper.f90
+
+LIBRARIES += 
+
+INCLUDE_LOCATIONS += $(CHEM_DIR)
+
+#VPATH_LOCATIONS +=  $(CHEM_DIR)/PMFs
+

@@ -1,0 +1,4 @@
+unit conversion
+-PeleLM rhoY units kg/m^3
+-PeleLM multiplies rhoY by 1e-3 before supplying to PelePhysics -> cgs units g/cm^3
+-PelePhysics calling ckwc should be fine then
