@@ -1,10 +1,8 @@
 #ifndef _TRANSPORT_H_
 #define _TRANSPORT_H_
 
-//#include <limits>
-//#include <cmath>
-
 #include <AMReX.H>
+#include <AMReX_Arena.H>
 #include <AMReX_Gpu.H>
 #include <AMReX_FArrayBox.H>
 #include <AMReX_REAL.H>
@@ -13,10 +11,30 @@
 
 #include "mechanism.h"
 #include "chemistry_file.H"
-#include "TransportParams.H"
 
 void transport_init();
 void transport_close();
+
+namespace transport_params {
+
+void init();
+void finalize();
+
+extern AMREX_GPU_DEVICE_MANAGED amrex::Real* trans_wt;
+extern AMREX_GPU_DEVICE_MANAGED amrex::Real* trans_iwt;
+extern AMREX_GPU_DEVICE_MANAGED amrex::Real* trans_eps;
+extern AMREX_GPU_DEVICE_MANAGED amrex::Real* trans_sig;
+extern AMREX_GPU_DEVICE_MANAGED amrex::Real* trans_dip;
+extern AMREX_GPU_DEVICE_MANAGED amrex::Real* trans_pol;
+extern AMREX_GPU_DEVICE_MANAGED amrex::Real* trans_zrot;
+extern AMREX_GPU_DEVICE_MANAGED amrex::Real* trans_fitmu;
+extern AMREX_GPU_DEVICE_MANAGED amrex::Real* trans_fitlam;
+extern AMREX_GPU_DEVICE_MANAGED amrex::Real* trans_fitdbin;
+extern AMREX_GPU_DEVICE_MANAGED int* trans_nlin;
+extern AMREX_GPU_DEVICE_MANAGED int array_size;
+extern AMREX_GPU_DEVICE_MANAGED int fit_length;
+
+} // namespace transport_params
 
 AMREX_GPU_DEVICE
 void get_transport_coeffs(
