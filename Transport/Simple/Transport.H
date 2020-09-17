@@ -20,24 +20,24 @@ namespace transport_params {
 void init();
 void finalize();
 
-extern AMREX_GPU_DEVICE_MANAGED amrex::Real* trans_wt;
-extern AMREX_GPU_DEVICE_MANAGED amrex::Real* trans_iwt;
-extern AMREX_GPU_DEVICE_MANAGED amrex::Real* trans_eps;
-extern AMREX_GPU_DEVICE_MANAGED amrex::Real* trans_sig;
-extern AMREX_GPU_DEVICE_MANAGED amrex::Real* trans_dip;
-extern AMREX_GPU_DEVICE_MANAGED amrex::Real* trans_pol;
-extern AMREX_GPU_DEVICE_MANAGED amrex::Real* trans_zrot;
-extern AMREX_GPU_DEVICE_MANAGED amrex::Real* trans_fitmu;
-extern AMREX_GPU_DEVICE_MANAGED amrex::Real* trans_fitlam;
-extern AMREX_GPU_DEVICE_MANAGED amrex::Real* trans_fitdbin;
-extern AMREX_GPU_DEVICE_MANAGED int* trans_nlin;
-extern AMREX_GPU_DEVICE_MANAGED int array_size;
-extern AMREX_GPU_DEVICE_MANAGED int fit_length;
+amrex::GpuArray<amrex::Real,NUM_SPECIES> trans_wt;
+amrex::GpuArray<amrex::Real,NUM_SPECIES> trans_iwt;
+amrex::GpuArray<amrex::Real,NUM_SPECIES> trans_eps;
+amrex::GpuArray<amrex::Real,NUM_SPECIES> trans_sig;
+amrex::GpuArray<amrex::Real,NUM_SPECIES> trans_dip;
+amrex::GpuArray<amrex::Real,NUM_SPECIES> trans_pol;
+amrex::GpuArray<amrex::Real,NUM_SPECIES> trans_zrot;
+amrex::GpuArray<amrex::Real,NUM_SPECIES> trans_fitmu;
+amrex::GpuArray<amrex::Real,NUM_SPECIES> trans_fitlam;
+amrex::GpuArray<amrex::Real,NUM_SPECIES> trans_fitdbin;
+amrex::GpuArray<int,NUM_SPECIES> trans_nlin;
 
 } // namespace transport_params
 
 AMREX_GPU_DEVICE
-void get_transport_coeffs(
+AMREX_FORCE_INLINE
+void
+get_transport_coeffs(
   amrex::Box const& bx,
   amrex::Array4<const amrex::Real> const& Y_in,
   amrex::Array4<const amrex::Real> const& T_in,
@@ -45,11 +45,56 @@ void get_transport_coeffs(
   amrex::Array4<amrex::Real> const& D_out,
   amrex::Array4<amrex::Real> const& mu_out,
   amrex::Array4<amrex::Real> const& xi_out,
-  amrex::Array4<amrex::Real> const& lam_out);
+  amrex::Array4<amrex::Real> const& lam_out)
+{
+
+  const auto lo = amrex::lbound(bx);
+  const auto hi = amrex::ubound(bx);
+
+  bool wtr_get_xi, wtr_get_mu, wtr_get_lam, wtr_get_Ddiag;
+
+  wtr_get_xi = true;
+  wtr_get_mu = true;
+  wtr_get_lam = true;
+  wtr_get_Ddiag = true;
+
+  amrex::Real T;
+  amrex::Real rho;
+  amrex::Real massloc[NUM_SPECIES];
+
+  amrex::Real muloc, xiloc, lamloc;
+  amrex::Real Ddiag[NUM_SPECIES];
+
+  for (int k = lo.z; k <= hi.z; ++k) {
+    for (int j = lo.y; j <= hi.y; ++j) {
+      for (int i = lo.x; i <= hi.x; ++i) {
+
+        T = T_in(i, j, k);
+        rho = Rho_in(i, j, k);
+        for (int n = 0; n < NUM_SPECIES; ++n) {
+          massloc[n] = Y_in(i, j, k, n);
+        }
+
+        transport(
+          wtr_get_xi, wtr_get_mu, wtr_get_lam, wtr_get_Ddiag, T, rho, massloc,
+          Ddiag, muloc, xiloc, lamloc);
+
+        //   mu, xi and lambda are stored after D in the diffusion multifab
+        for (int n = 0; n < NUM_SPECIES; ++n) {
+          D_out(i, j, k, n) = Ddiag[n];
+        }
+
+        mu_out(i, j, k) = muloc;
+        xi_out(i, j, k) = xiloc;
+        lam_out(i, j, k) = lamloc;
+      }
+    }
+  }
+}
 
 using namespace transport_params;
 
-AMREX_GPU_HOST_DEVICE
+AMREX_GPU_DEVICE
 AMREX_FORCE_INLINE
 void
 comp_pure_bulk(amrex::Real Tloc, amrex::Real* muloc, amrex::Real* xiloc)
@@ -107,7 +152,7 @@ comp_pure_bulk(amrex::Real Tloc, amrex::Real* muloc, amrex::Real* xiloc)
   }
 }
 
-AMREX_GPU_HOST_DEVICE
+AMREX_GPU_DEVICE
 AMREX_FORCE_INLINE
 void
 transport(
