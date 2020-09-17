@@ -12,9 +12,9 @@
 
 namespace EOS {
 
-extern AMREX_GPU_DEVICE_MANAGED amrex::Real gamma;
+extern amrex::Real gamma;
 constexpr amrex::Real RU = 8.31446261815324e7;
-constexpr amrex::Real RUC  = 1.98721558317399615845;
+constexpr amrex::Real RUC = 1.98721558317399615845;
 constexpr amrex::Real PATM = 1.01325e+06;
 constexpr amrex::Real AIRMW = 28.97;
 
@@ -22,14 +22,11 @@ void init();
 
 void close();
 
-void
-atomic_weightsCHON(amrex::Real atwCHON[]);
+void atomic_weightsCHON(amrex::Real atwCHON[]);
 
-void
-element_compositionCHON(int ecompCHON[]);
+void element_compositionCHON(int ecompCHON[]);
 
-void
-speciesNames(amrex::Vector<std::string>& spn);
+void speciesNames(amrex::Vector<std::string>& spn);
 
 AMREX_GPU_HOST_DEVICE
 AMREX_FORCE_INLINE
@@ -46,7 +43,7 @@ void
 inv_molecular_weight(amrex::Real imw[])
 {
   for (int n = 0; n < NUM_SPECIES; n++)
-    imw[n] = 1./AIRMW;
+    imw[n] = 1. / AIRMW;
 }
 
 AMREX_GPU_HOST_DEVICE
@@ -206,11 +203,11 @@ PYT2RE(
 AMREX_GPU_HOST_DEVICE
 AMREX_FORCE_INLINE
 void
-PYT2R(amrex::Real P, amrex::Real Y[], amrex::Real T, amrex::Real &R) 
+PYT2R(amrex::Real P, amrex::Real Y[], amrex::Real T, amrex::Real& R)
 {
   amrex::Real wbar;
   EOS::Y2WBAR(Y, wbar);
-  R = P * wbar / (RU * T); 
+  R = P * wbar / (RU * T);
 }
 
 AMREX_GPU_HOST_DEVICE
@@ -257,11 +254,11 @@ TY2H(amrex::Real T, amrex::Real Y[NUM_SPECIES], amrex::Real& H)
 {
   amrex::Real Hi[NUM_SPECIES];
   amrex::Real wbar = AIRMW;
-  const amrex::Real Cv = RU / (wbar * (gamma - 1.0)); 
+  const amrex::Real Cv = RU / (wbar * (gamma - 1.0));
   H = 0.0;
   for (int n = 0; n < NUM_SPECIES; n++) {
     Hi[n] = Cv * T * gamma;
-    H = H + Y[n] * Hi[n]; 
+    H = H + Y[n] * Hi[n];
   }
 }
 
