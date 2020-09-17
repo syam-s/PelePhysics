@@ -6902,7 +6902,7 @@ class CPickler(CMill):
                         if reaction.reversible:
                             coeff_hold.append('-qr_co['+str(self.qfqr_co_idx_map.index(r))+']')
                 else:
-                    # note in this case there can only be 2 QSS in one reac, one on each side  !  
+                    # note in this case there can only be 2 QSS in one reac  
                     coupled_qss = [self.qss_species_list[j] for j in coupled]
                     print "        this reaction couples the following QSS: ", coupled_qss
 
@@ -6918,18 +6918,25 @@ class CPickler(CMill):
                             
                     # THIS is the right groupCoeff list
                     #if group_flag:
-                        # if QSS species is a reactant
+
+                    # if QSS species is a reactant (other QSS must be a product to be coupled to be coupled here, or quadratic coupling would have been triggered earlier)
                     if direction == -1:
                         print "        species ", symbol, " in reaction ", r, " is a reactant"
                         coeff_hold.append('-qf_co['+str(self.qfqr_co_idx_map.index(r))+']')
                         if reaction.reversible:
                             groupCoeff_hold[other_qss].append('+qr_co['+str(self.qfqr_co_idx_map.index(r))+']')
-                    # if QSS species is a product
-                    elif direction == 1:
+                    # if QSS species is a product AND other QSS species is a reactant (not guaranteed; must check that QSS are on opposite sides of equation)
+                    elif direction == 1 and any(reactant == other_qss for reactant,_ in list(set(reaction.reactants))):
                         print "        species ", symbol, " in reaction ", r, " is a product"
+                        print "        other qss species is ", other_qss
                         groupCoeff_hold[other_qss].append('+qf_co['+str(self.qfqr_co_idx_map.index(r))+']')
                         if reaction.reversible:
                             coeff_hold.append('-qr_co['+str(self.qfqr_co_idx_map.index(r))+']')
+                    # last option is that BOTH QSS are products, but the reaction is only one way, so it doesn't matter. This is ignored in the quadratic coupling check as
+                    # the reverse rate would be zero and thus would not affect anything anyway. 
+                    else:
+                        print "        species ", symbol, " and species ", other_qss, " in irreversible reaction ", r, " are both products"
+                        print "        this reaction does not contribute to any QSS coefficients and is thus ignored"
                             
                     #else:
                     #    print "         but species "+other_qss+" is uni-directionally coupled with "+str(symbol)
