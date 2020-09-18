@@ -231,6 +231,7 @@ class CPickler(CMill):
         self._ckeqxp(mechanism)
         self._ckeqyr(mechanism)
         self._ckeqxr(mechanism)
+        self._ckchrg(mechanism)
         
         # Fuego Functions
         # GPU version
@@ -415,6 +416,7 @@ class CPickler(CMill):
             'void CKEQXP'+sym+'(double *  P, double *  T, double *  x, double *  eqcon);',
             'void CKEQYR'+sym+'(double *  rho, double *  T, double *  y, double *  eqcon);',
             'void CKEQXR'+sym+'(double *  rho, double *  T, double *  x, double *  eqcon);',
+            'void CKCHRG'+sym+'(int * kcharge);',
             'AMREX_GPU_HOST_DEVICE void DWDOT(double *  J, double *  sc, double *  T, int * consP);',
             'AMREX_GPU_HOST_DEVICE void DWDOT_SIMPLIFIED(double *  J, double *  sc, double *  Tp, int * HP);',
             #'AMREX_GPU_HOST_DEVICE void SLJ_PRECOND_CSC(double *  Jsps, int * indx, int * len, double * sc, double * Tp, int * HP, double * gamma);',
@@ -4315,6 +4317,28 @@ class CPickler(CMill):
 
         return
 
+    def _ckchrg(self, mechanism):
+
+        self._write()
+        self._write()
+        self._write(self.line('Returns the electronic charges of the species'))
+        self._write('void CKCHRG'+sym+'(int * kcharge)')
+        self._write('{')
+        self._indent()
+
+        for species in self.species:
+            charge = 0
+            composition = mechanism.species(species.symbol).composition
+            for (name,coef) in composition:
+                if name == "E":
+                    charge -= coef
+            self._write('kcharge[%d] = %d; ' % (species.id,charge) + self.line(' %s' % species.symbol))
+
+        self._outdent()
+
+        self._write('}')
+
+        return
 
 # Fuego Extensions. All functions in this section has the fe prefix
 # All fuctions in this section uses the standard fuego chemkin functions
