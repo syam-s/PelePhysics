@@ -16,7 +16,11 @@ ifeq ($(USE_SUNDIALS_PP),TRUE)
       DEFINES += -DUSE_ARKODE_PP
       LIBRARIES += -L$(SUNDIALS_LIB_DIR) -lsundials_arkode
   else
-      LIBRARIES += -L$(SUNDIALS_LIB_DIR) -lsundials_cvode
+      ifeq ($(USE_CUDA),TRUE)
+        LIBRARIES += -L$(SUNDIALS_LIB_DIR) -lsundials_cvode -lsundials_cvode_fused_cuda
+      else
+        LIBRARIES += -L$(SUNDIALS_LIB_DIR) -lsundials_cvode
+      endif
   endif
   LIBRARIES += -L$(SUNDIALS_LIB_DIR) -lsundials_nvecserial
   ifeq ($(USE_CUDA),TRUE)
