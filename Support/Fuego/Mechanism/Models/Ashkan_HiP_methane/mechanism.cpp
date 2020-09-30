@@ -9982,12 +9982,12 @@ void productionRate(double *  wdot, double *  sc, double T)
     double tc[] = { log(T), T, T*T, T*T*T, T*T*T*T }; /*temperature cache */
     double invT = 1.0 / tc[1];
 
-    //if (T != T_save)
-    //{
+    if (T != T_save)
+    {
         T_save = T;
         comp_k_f(tc,invT,k_f_save);
         comp_Kc(tc,invT,Kc_save);
-    //}
+    }
 
     double qdot, q_f[124], q_r[124];
     comp_qfqr(q_f, q_r, sc, tc, invT);
