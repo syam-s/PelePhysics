@@ -975,12 +975,7 @@ int cJac(realtype /* tn */, N_Vector u, N_Vector /* fu */, SUNMatrix J,
       }
 
       /* Jac */
-      int consP;
-      if (data_wk->ireactor_type == eint_rho) {
-          consP = 0;
-      } else {
-          consP = 1;
-      }
+      int consP = data_wk->ireactor_type == eint_rho ? 0 : 1;
       EOS::RTY2JAC(rho, temp, massfrac, Jmat_tmp, consP);
       /* fill the sunMat */
       for (int k = 0; k < NUM_SPECIES; k++){
