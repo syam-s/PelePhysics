@@ -41,7 +41,7 @@ initialize_data(int i, int j, int k, int fuel_id,
     Real Temp_lo = 2000.0;
     Real Temp_hi = 2500.0;
     Real dTemp = 100.0;
-    Real pressure = 1013250.0;
+    Real pressure = 1013250.0*30;
     Real density, energy, temp;
     GpuArray<Real,NUM_SPECIES> X;
     GpuArray<Real,NUM_SPECIES> Y;
@@ -64,7 +64,7 @@ initialize_data(int i, int j, int k, int fuel_id,
     X[N2_ID]   = 0.7;
     EOS::X2Y(&X[0],&Y[0]);
     // T
-    temp =  Temp_lo + (Temp_hi-Temp_lo)*y/L[1] + dTemp * std::sin(2.0*pi*y/P[1]);
+    temp =  Temp_lo; //+ (Temp_hi-Temp_lo)*y/L[1] + dTemp * std::sin(2.0*pi*y/P[1]);
     // get rho and E 
     EOS::PYT2RE(pressure, &Y[0], temp, density, energy);
     // Fill vect
@@ -344,6 +344,7 @@ main (int   argc,
                                tmp_vect_energy + i, tmp_src_vect_energy + i,
                                dt_incr, time);
             dt_incr =  dt/ndt;
+            Print() << "INTEGRATED.. "<<time << " "<< tmp_vect[NUM_SPECIES]<< std::endl;
           }
         }
       }

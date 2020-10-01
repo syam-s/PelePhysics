@@ -8,7 +8,7 @@ DIM        = 3
 COMP	   = gcc
 FCOMP	   = gfortran
 
-USE_MPI    = TRUE
+USE_MPI    = FALSE
 USE_OMP    = FALSE
 
 FUEGO_GAS  = TRUE
@@ -46,7 +46,8 @@ endif
 #######################
 ifeq ($(FUEGO_GAS), TRUE)
   Eos_dir         = Fuego
-  Chemistry_Model = drm19
+  #Chemistry_Model = drm19
+  Chemistry_Model = Ashkan_HiP_methane
   Reactions_dir   = Fuego
   Transport_dir   = Simple
 else
