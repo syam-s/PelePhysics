@@ -241,6 +241,7 @@ main (int   argc,
           typ_vals[i] = std::max(typ_vals[i],1.e-10);
         }
         SetTypValsODE(typ_vals);
+        ReSetTolODE();
       }
     }
 
