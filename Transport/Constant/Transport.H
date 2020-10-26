@@ -28,7 +28,7 @@ void transport_init(
   amrex::GpuArray<amrex::Real, max_prob_param>& transport_parm_real);
 void transport_close();
 
-AMREX_GPU_DEVICE
+AMREX_GPU_HOST_DEVICE
 AMREX_FORCE_INLINE
 void
 transport(

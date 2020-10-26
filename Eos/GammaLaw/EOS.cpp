@@ -2,13 +2,13 @@
 
 namespace EOS {
 
-amrex::Real gamma = 1.4;
+//amrex::Real gamma = 1.4;
 
 void
 init()
 {
-  amrex::ParmParse pp("eos");
-  pp.query("gamma", gamma);
+  //amrex::ParmParse pp("eos");
+  //pp.query("gamma", gamma);
 
   CKINIT();
 }
