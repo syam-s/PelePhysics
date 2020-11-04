@@ -336,7 +336,7 @@ charge_mass(amrex::Real zk[])
    int charge[NUM_SPECIES];
    CKCHRG(charge);
    for (int i = 0; i < NUM_SPECIES; ++i) {
-      zk[i] = NA * UNITCHARGE * charge[i] * imw[i];
+      zk[i] = NA * UNITCHARGE * charge[i] * imw[i] * 1000.0;
    }
 }
 #endif
