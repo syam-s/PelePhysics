@@ -16,6 +16,7 @@ FUEGO_GAS  = TRUE
 TINY_PROFILE = TRUE
 
 USE_CUDA   = FALSE
+USE_HIP    = FALSE
 
 # define the location of the PELE_PHYSICS top directory
 PELE_PHYSICS_HOME    ?= ../../..
@@ -35,7 +36,12 @@ ifeq ($(USE_SUNDIALS_PP), TRUE)
       DEFINES += -DCVODE_BOXINTEG
       USE_KLU_PP = FALSE
   else
-      USE_KLU_PP = TRUE
+      ifeq ($(USE_HIP), TRUE)
+	DEFINES += -DCVODE_BOXINTEG
+	USE_KLU_PP = FALSE
+      else
+          USE_KLU_PP = TRUE
+      endif
   endif
 else
   # Activates use of Hari explicit RK
