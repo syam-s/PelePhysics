@@ -7,16 +7,16 @@
 
 #include <EOS.H>
 
-AMREX_GPU_HOST_DEVICE
+AMREX_GPU_DEVICE
 inline
 void
 initialize_data(int i, int j, int k,  
 		amrex::Array4<amrex::Real> const& mf,
 		amrex::Array4<amrex::Real> const& temp,
 		amrex::Array4<amrex::Real> const& rho,
-                std::vector<amrex::Real> dx, 
-		std::vector<amrex::Real> plo, 
-		std::vector<amrex::Real> phi ) noexcept
+      const GpuArray<Real, AMREX_SPACEDIM>&  dx, 
+      const GpuArray<Real, AMREX_SPACEDIM>&  plo, 
+      const GpuArray<Real, AMREX_SPACEDIM>&  phi ) noexcept
 {
 	amrex::Real dTemp = 5.0;
 	amrex::Real dRho = 0.005;
@@ -47,7 +47,7 @@ initialize_data(int i, int j, int k,
 	rho(i,j,k) = 0.01 + dRho * std::sin(2.0*pi*y/P[1]);
 #endif
 	for (int n = 0; n < NUM_SPECIES; n++) {
-            mf(i,j,k,n) = Y_lo[n] + (Y_hi[n]-Y_lo[n]) * x / L[0];	
+       mf(i,j,k,n) = Y_lo[n] + (Y_hi[n]-Y_lo[n]) * x / L[0];	
 	}
         // corr Yk
 	amrex::Real dummy = 0.0;

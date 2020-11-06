@@ -5,10 +5,12 @@
 #include <AMReX_VisMF.H>
 #include <AMReX_ParmParse.H>
 
-#include <Transport.H>
+#include <TransportSimple.H>
 #include <PlotFileFromMF.H>
 #include "mechanism.h"
 #include <GPU_misc.H>
+
+#include <trans_parm.H>
 
 #include <EOS.H>
 
@@ -25,6 +27,8 @@ main (int   argc,
 
       EOS::init();
       transport_init();
+
+      TransParm const* trans_parm = trans_parm_g;
     
       std::vector<int> npts(3,1);
       for (int i = 0; i < BL_SPACEDIM; ++i) {
@@ -34,12 +38,11 @@ main (int   argc,
       Box domain(IntVect(D_DECL(0,0,0)),
                  IntVect(D_DECL(npts[0]-1,npts[1]-1,npts[2]-1)));
 
-      std::vector<Real> plo(3,0), phi(3,0), dx(3,1);
-      for (int i=0; i<BL_SPACEDIM; ++i) {
-          phi[i] = domain.length(i);
-          dx[i] = (phi[i] - plo[i])/domain.length(i);
-      }
-    
+      GpuArray<Real, AMREX_SPACEDIM>  plo = {D_DECL(0,0,0)};
+      GpuArray<Real, AMREX_SPACEDIM>  dx  = {D_DECL(1,1,1)};
+      GpuArray<Real, AMREX_SPACEDIM>  phi = {D_DECL(Real(domain.length(0)),
+                                                  Real(domain.length(1)),
+                                                  Real(domain.length(2)))};
       int max_size = 32;
       pp.query("max_size",max_size);
       BoxArray ba(domain);
@@ -108,11 +111,11 @@ main (int   argc,
           amrex::launch(gbox, [=] AMREX_GPU_DEVICE(amrex::Box const& tbx) {
                     get_transport_coeffs(tbx,
                                          Y_a, T_a, rho_a, 
-                                         D_a, mu_a, xi_a, lam_a);
+                                         D_a, mu_a, xi_a, lam_a, trans_parm);
           });
       }
 
-      transport_close();
+      //transport_close();
       EOS::close();
 
       MultiFab VarPlt(ba,dm,NUM_SPECIES+3,num_grow);
