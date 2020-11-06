@@ -10,7 +10,7 @@
 #include <EOS.H>
 
 
-AMREX_GPU_HOST_DEVICE
+AMREX_GPU_DEVICE
 inline
 void
 box_flatten(int icell, int i, int j, int k, int ireactor_type, 
@@ -56,7 +56,7 @@ box_flatten(int icell, int i, int j, int k, int ireactor_type,
 }
 
 
-AMREX_GPU_HOST_DEVICE
+AMREX_GPU_DEVICE
 inline
 void
 box_unflatten(int icell, int i, int j, int k, int ireactor_type, 
