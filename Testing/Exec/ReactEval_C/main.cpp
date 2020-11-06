@@ -155,7 +155,7 @@ main (int   argc,
       // Set ODE tolerances
       SetTolFactODE(rtol,atol);
 
-#ifdef AMREX_USE_CUDA
+#if defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP)
       reactor_info(ode_iE, ode_ncells);
 #else
       reactor_init(ode_iE, ode_ncells);
@@ -282,8 +282,8 @@ main (int   argc,
       auto const& fc      = fctCount.array(mfi);
       auto const& mask    = dummyMask.array(mfi);
 
-#ifdef AMREX_USE_CUDA
-      cudaError_t cuda_status = cudaSuccess;
+#if defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP)
+      DEVICE_ERROR_TYPE device_status = DEVICE_SUCCESS;
       ode_ncells    = nc;
 #else
 #ifndef CVODE_BOXINTEG
@@ -356,7 +356,7 @@ main (int   argc,
         Real dt_incr = dt/ndt;
         for (int ii = 0; ii < ndt; ++ii)
         {
-#ifdef AMREX_USE_CUDA
+#if defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP)
           react(box,
                 rhoY, frcExt, T,
                 rhoE, frcEExt,
@@ -421,7 +421,7 @@ main (int   argc,
       BL_PROFILE_VAR_STOP(PlotFile);
     }
     
-#ifndef AMREX_USE_CUDA
+#if !defined(AMREX_USE_CUDA) && !defined(AMREX_USE_HIP)
     reactor_close();
 #endif
     transport_close();

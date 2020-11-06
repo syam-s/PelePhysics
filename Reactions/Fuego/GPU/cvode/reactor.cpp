@@ -94,7 +94,7 @@ int reactor_info(int reactor_type, int Ncells){
     /* Checks */
     if (isolve_type == iterative_gmres_solve) {
         if (ianalytical_jacobian == 1) { 
-#ifdef AMREX_USE_CUDA
+#if defined(AMREX_USE_CUDA)
             if (iverbose > 0) {
                 Print() <<"Using an Iterative GMRES Solver with sparse simplified preconditioning \n";
             }
@@ -110,8 +110,10 @@ int reactor_info(int reactor_type, int Ncells){
             if (iverbose > 0) {
                 Print() << "--> SPARSE Preconditioner -- non zero entries: " << nJdata << ", which represents "<< nJdata/float((NUM_SPECIES+1) * (NUM_SPECIES+1)) *100.0 <<" % fill-in pattern\n";
             }         
-#else
+#elif defined(AMREX_USE_HIP)
             Abort("\n--> With HIP the only option is NP GMRES \n");
+#else
+            Abort("\n--> Not sure what do with analytic Jacobian in this case \n");
 #endif
         } else {
             if (iverbose > 0) {
@@ -120,7 +122,7 @@ int reactor_info(int reactor_type, int Ncells){
         }
 
     } else if (isolve_type == sparse_solve) {
-#ifdef AMREX_USE_CUDA
+#if defined(AMREX_USE_CUDA)
         if (ianalytical_jacobian == 1) {
             if (iverbose > 0) {
                 Print() <<"Using a custom sparse direct solver (with an analytical Jacobian) \n";
@@ -140,12 +142,14 @@ int reactor_info(int reactor_type, int Ncells){
         } else {
             Abort("\n--> Custom direct sparse solver requires an analytic Jacobian \n");
         }
-#else
+#elif defined(AMREX_USE_HIP)
         Abort("\n--> With HIP the only option is NP GMRES \n");
+#else
+        Abort("\n--> No sparse solve for this case\n");
 #endif
 
     } else if (isolve_type == sparse_cusolver_solve) {
-#ifdef AMREX_USE_CUDA
+#if defined(AMREX_USE_CUDA)
         if (ianalytical_jacobian == 1) {
             Print() <<"Using a Sparse Direct Solver based on cuSolver \n";
             int nJdata;
@@ -163,8 +167,10 @@ int reactor_info(int reactor_type, int Ncells){
         } else {
             Abort("\n--> Sparse direct solvers requires an analytic Jacobian \n");
         }
+#elif defined(AMREX_USE_HIP)
+        Abort("\n--> No HIP equivalent to cusolver implemented yet \n");
 #else
-        Abort("\n--> With HIP the only option is NP GMRES \n");
+        Abort("\n--> No batch solver for this case\n");
 #endif
 
     } else {
@@ -189,7 +195,7 @@ int react(const amrex::Box& box,
           amrex::Real &dt_react,
           amrex::Real &time,
           const int &reactor_type,
-          cudaStream_t stream) {
+	  DEVICE_STREAM_TYPE stream) {
 
     /* CVODE */
     N_Vector y         = NULL;
@@ -243,8 +249,8 @@ int react(const amrex::Box& box,
     user_data->ianalytical_jacobian = ianalytical_jacobian;
     user_data->isolve_type          = isolve_type; 
     user_data->iverbose             = iverbose;
-    user_data->stream               = stream;
     user_data->nbBlocks             = std::max(1,NCELLS/32);
+    user_data->stream               = stream;
     user_data->nbThreads            = 32;
 
 #ifdef AMREX_USE_CUDA
@@ -260,6 +266,7 @@ int react(const amrex::Box& box,
         BL_PROFILE_VAR("SparsityFuegoStuff", SparsityStuff);
         BL_PROFILE_VAR_STOP(SparsityStuff);
         if (user_data->isolve_type == iterative_gmres_solve) {
+	    // Create batch QR solver for preconditioning GMRES
             BL_PROFILE_VAR_START(SparsityStuff);
             SPARSITY_INFO_SYST_SIMPLIFIED(&(user_data->NNZ),&HP);
             BL_PROFILE_VAR_STOP(SparsityStuff);
@@ -353,11 +360,12 @@ int react(const amrex::Box& box,
             BL_PROFILE_VAR_STOP(CuSolverInit);
 
         } else if (isolve_type == sparse_cusolver_solve) {
+	    // Create batch QR solver to invert lienar systems directly
             BL_PROFILE_VAR_START(SparsityStuff);
             SPARSITY_INFO_SYST(&(user_data->NNZ),&HP,1);
             BL_PROFILE_VAR_STOP(SparsityStuff);
 
-            //Print() << " Doind ->alloc \n";
+            //Print() << " Doing ->alloc \n";
             BL_PROFILE_VAR_START(AllocsCVODE);
             user_data->csr_row_count_h = (int*) The_Arena()->alloc((NUM_SPECIES+2) * sizeof(int));
             user_data->csr_col_index_h = (int*) The_Arena()->alloc(user_data->NNZ * sizeof(int));
@@ -401,6 +409,7 @@ int react(const amrex::Box& box,
             SUNMatrix_cuSparse_CopyToDevice(A, NULL, user_data->csr_row_count_h, user_data->csr_col_index_h);
             BL_PROFILE_VAR_STOP(SparsityStuff);
         } else {
+            // Create batch sparse solver (cusparse) on device
             BL_PROFILE_VAR_START(SparsityStuff);
             SPARSITY_INFO_SYST(&(user_data->NNZ),&HP,1);
             BL_PROFILE_VAR_STOP(SparsityStuff);
@@ -441,15 +450,19 @@ int react(const amrex::Box& box,
 #endif
 
     /* Definition of main vector */
-#ifdef AMREX_USE_CUDA
+#if defined(AMREX_USE_CUDA)
     y = N_VNewManaged_Cuda(neq_tot);
+#elif defined(AMREX_USE_HIP)
+    y = N_VNewManaged_Hip(neq_tot);
+#endif
     //y = N_VMakeWithManagedAllocator_Cuda(neq_tot, sunalloc, sunfree);
     if(check_flag((void*)y, "N_VMakeWithManagedAllocator_Cuda", 0)) return(1);
 
     /* Use a non-default cuda stream for kernel execution */
+#if defined(AMREX_USE_CUDA)
     N_VSetCudaStream_Cuda(y, &stream);
-#else
-    // y = N_VNew_HIP ??;
+#elif defined(AMREX_USE_HIP)
+    N_VSetHipStream_Hip(y, &stream);
 #endif
 
     /* Call CVodeCreate to create the solver memory and specify the
@@ -468,11 +481,13 @@ int react(const amrex::Box& box,
     BL_PROFILE_VAR_STOP(AllocsCVODE);
 
 
-#ifdef AMREX_USE_CUDA
     /* Get Device pointer of solution vector */
+#if defined(AMREX_USE_CUDA)
     realtype *yvec_d      = N_VGetDeviceArrayPointer_Cuda(y);
+#elif defined(AMREX_USE_HIP)
+    realtype *yvec_d      = N_VGetDeviceArrayPointer_Hip(y);
 #else
-    //realtype *yvec_d      = HIP crap ??
+    Abort("No device arrary pointer");
 #endif
 
 
@@ -502,9 +517,13 @@ int react(const amrex::Box& box,
     if (check_flag(&flag, "CVodeInit", 1)) return(1);
     
     /* Definition of tolerances: one for each species */
-#ifdef AMREX_USE_CUDA
+#if defined(AMREX_USE_CUDA)
     atol  = N_VNew_Cuda(neq_tot);
     ratol = N_VGetHostArrayPointer_Cuda(atol);
+#elif defined(AMREX_USE_HIP)
+    atol  = N_VNew_Hip(neq_tot);
+    ratol = N_VGetHostArrayPointer_Hip(atol);
+#endif
     if (typVals[0]>0) {
         printf("Setting CVODE tolerances rtol = %14.8e atolfact = %14.8e in PelePhysics \n",relTol, absTol);
         for (int i = 0; i < NCELLS; i++) {
@@ -518,9 +537,10 @@ int react(const amrex::Box& box,
             ratol[i] = absTol;
         }
     }
+#if defined(AMREX_USE_CUDA)
     N_VCopyToDevice_Cuda(atol);
-#else
-    // other HIP way to set atol/rtol
+#elif defined(AMREX_USE_HIP)
+    N_VCopyToDevice_Hip(atol);
 #endif
     /* Call CVodeSVtolerances to specify the scalar relative tolerance
      * and vector absolute tolerances */
@@ -533,10 +553,8 @@ int react(const amrex::Box& box,
             LS = SUNSPGMR(y, PREC_NONE, 0);
             if(check_flag((void *)LS, "SUNDenseLinearSolver", 0)) return(1);
         } else { 
-#ifdef AMREX_USE_CUDA
             LS = SUNSPGMR(y, PREC_LEFT, 0);
             if(check_flag((void *)LS, "SUNDenseLinearSolver", 0)) return(1);
-#endif
         }
 
         /* Set matrix and linear solver to Cvode */
@@ -547,13 +565,17 @@ int react(const amrex::Box& box,
         flag = CVodeSetJacTimes(cvode_mem, NULL, NULL);
         if(check_flag(&flag, "CVodeSetJacTimes", 1)) return(1);
 
-#ifdef AMREX_USE_CUDA
         if (user_data->ianalytical_jacobian == 1) {
             /* Set the preconditioner solve and setup functions */
+#if defined(AMREX_USE_CUDA)
             flag = CVodeSetPreconditioner(cvode_mem, Precond, PSolve);
             if(check_flag(&flag, "CVodeSetPreconditioner", 1)) return(1);
+#else
+	    Abort("No options for preconditioning in this case yet");
+#endif
         }
 
+#if defined(AMREX_USE_CUDA)
     } else if (user_data->isolve_type == sparse_cusolver_solve) {
         LS = SUNLinSol_cuSolverSp_batchQR(y, A, user_data->cusolverHandle);
         if(check_flag((void *)LS, "SUNLinSol_cuSolverSp_batchQR", 0)) return(1);
@@ -632,9 +654,9 @@ int react(const amrex::Box& box,
     The_Device_Arena()->free(user_data->rhoesrc_ext_d);
     The_Device_Arena()->free(user_data->rYsrc_d);
 
-#ifdef AMREX_USE_CUDA
     if (user_data->ianalytical_jacobian == 1) {
-        //Print() << " Doind ->free \n";
+#ifdef AMREX_USE_CUDA
+        //Print() << " Doing ->free \n";
         //The_Device_Arena()->free(user_data->csr_row_count_d);
         //The_Device_Arena()->free(user_data->csr_col_index_d);
         The_Arena()->free(user_data->csr_row_count_h);
@@ -662,8 +684,10 @@ int react(const amrex::Box& box,
             cusparseStatus_t cusparse_status = cusparseDestroy(user_data->cuSPHandle);
             assert(cusparse_status == CUSPARSE_STATUS_SUCCESS);
         }
-    }
+#else
+	Abort("No ability to use analytic jacobian for this case yet");
 #endif
+    }
 
     The_Arena()->free(user_data);
 
@@ -683,11 +707,16 @@ static int cF_RHS(realtype t, N_Vector y_in, N_Vector ydot_in,
 
     BL_PROFILE_VAR("fKernelSpec()", fKernelSpec);
 
-    cudaError_t cuda_status = cudaSuccess;
+    DEVICE_ERROR_TYPE device_status = DEVICE_SUCCESS;
 
     /* Get Device pointers for Kernel call */
+#if defined(AMREX_USE_CUDA)
     realtype *yvec_d      = N_VGetDeviceArrayPointer_Cuda(y_in);
     realtype *ydot_d      = N_VGetDeviceArrayPointer_Cuda(ydot_in);
+#elif defined(AMREX_USE_HIP)
+    realtype *yvec_d      = N_VGetDeviceArrayPointer_Hip(y_in);
+    realtype *ydot_d      = N_VGetDeviceArrayPointer_Hip(ydot_in);
+#endif
     
     // allocate working space 
     UserData udata = static_cast<CVodeUserData*>(user_data);
@@ -707,8 +736,12 @@ static int cF_RHS(realtype t, N_Vector y_in, N_Vector ydot_in,
         }
     }); 
 
-    cuda_status = cudaStreamSynchronize(udata->stream);  
-    assert(cuda_status == cudaSuccess);
+#if defined(AMREX_USE_CUDA)
+    device_status = cudaStreamSynchronize(udata->stream);  
+#elif defined(AMREX_USE_HIP)
+    device_status = hipStreamSynchronize(udata->stream);  
+#endif
+    assert(device_status == DEVICE_SUCCESS);
 
     BL_PROFILE_VAR_STOP(fKernelSpec);
     
@@ -1156,7 +1189,7 @@ void
 fKernelDenseSolve(int ncell, realtype *x_d, realtype *b_d,
           int subsys_size, int subsys_nnz, realtype *csr_val)
 {
-
+#if defined(AMREX_USE_CUDA)
   int stride = blockDim.x*gridDim.x;
   
   for (int icell = blockDim.x*blockIdx.x+threadIdx.x;
@@ -1171,6 +1204,7 @@ fKernelDenseSolve(int ncell, realtype *x_d, realtype *b_d,
                /* Solve the subsystem of the cell */
                sgjsolve(csr_val_cell, x_cell, b_cell);
   }  
+#endif
 }
 
 
@@ -1178,8 +1212,9 @@ fKernelDenseSolve(int ncell, realtype *x_d, realtype *b_d,
 /* 
  * CUSTOM SOLVER STUFF
  */
-SUNLinearSolver SUNLinSol_dense_custom(N_Vector y, SUNMatrix A, cudaStream_t stream)
+SUNLinearSolver SUNLinSol_dense_custom(N_Vector y, SUNMatrix A, DEVICE_STREAM_TYPE stream)
 {
+#if defined(AMREX_USE_CUDA)
   /* Check that required arguments are not NULL */
   if (y == NULL || A == NULL) return(NULL);
 
@@ -1229,6 +1264,9 @@ SUNLinearSolver SUNLinSol_dense_custom(N_Vector y, SUNMatrix A, cudaStream_t str
   content->stream      = stream; 
 
   return(S);
+#else
+  return NULL;
+#endif
 }
 
 
@@ -1245,7 +1283,8 @@ int SUNLinSolSetup_Dense_custom(SUNLinearSolver S, SUNMatrix A)
 int SUNLinSolSolve_Dense_custom(SUNLinearSolver S, SUNMatrix A, N_Vector x,
                                 N_Vector b, realtype tol)
 {
-  cudaError_t cuda_status = cudaSuccess;
+#if defined(AMREX_USE_CUDA)
+  cuda_status = cudaSuccess;
 
   /* Get Device pointers for Kernel call */
   realtype *x_d      = N_VGetDeviceArrayPointer_Cuda(x);
@@ -1272,11 +1311,13 @@ int SUNLinSolSolve_Dense_custom(SUNLinearSolver S, SUNMatrix A, N_Vector x,
 
   BL_PROFILE_VAR_STOP(fKernelDenseSolve);
 
+#endif
   return(SUNLS_SUCCESS);
 }
 
 int SUNLinSolFree_Dense_custom(SUNLinearSolver S) 
 {
+#if defined(AMREX_USE_CUDA)
   /* return with success if already freed */
   if (S == NULL) return(SUNLS_SUCCESS);
 
@@ -1295,6 +1336,7 @@ int SUNLinSolFree_Dense_custom(SUNLinearSolver S)
   /* free the actual SUNLinSol */
   free(S);
   S = NULL;
+#endif
 
   return(SUNLS_SUCCESS);
 }

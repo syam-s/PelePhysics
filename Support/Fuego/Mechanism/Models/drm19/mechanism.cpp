@@ -1,6 +1,6 @@
 #include "chemistry_file.H"
 
-#ifndef AMREX_USE_CUDA
+#if !defined(AMREX_USE_CUDA) && !defined(AMREX_USE_HIP)
 namespace thermo
 {
     double fwd_A[84], fwd_beta[84], fwd_Ea[84];
@@ -90,7 +90,7 @@ void get_mw(double mw_new[]){
 }
 
 
-#ifndef AMREX_USE_CUDA
+#if !defined(AMREX_USE_CUDA) && !defined(AMREX_USE_HIP)
 /* Initializes parameter database */
 void CKINIT()
 {
@@ -1913,7 +1913,7 @@ AMREX_GPU_HOST_DEVICE void CKPY(double *  rho, double *  T, double *  y,  double
 }
 
 
-#ifndef AMREX_USE_CUDA
+#if !defined(AMREX_USE_CUDA) && !defined(AMREX_USE_HIP)
 /*Compute P = rhoRT/W(y) */
 void VCKPY(int *  np, double *  rho, double *  T, double *  y,  double *  P)
 {
@@ -2196,7 +2196,7 @@ AMREX_GPU_HOST_DEVICE void CKYTX(double *  y,  double *  x)
 }
 
 
-#ifndef AMREX_USE_CUDA
+#if !defined(AMREX_USE_CUDA) && !defined(AMREX_USE_HIP)
 /*convert y[npoints*species] (mass fracs) to x[npoints*species] (mole fracs) */
 void VCKYTX(int *  np, double *  y,  double *  x)
 {
@@ -2688,7 +2688,7 @@ AMREX_GPU_HOST_DEVICE void CKHMS(double *  T,  double *  hms)
 }
 
 
-#ifndef AMREX_USE_CUDA
+#if !defined(AMREX_USE_CUDA) && !defined(AMREX_USE_HIP)
 /*Returns enthalpy in mass units (Eq 27.) */
 void VCKHMS(int *  np, double *  T,  double *  hms)
 {
@@ -3465,7 +3465,7 @@ void VCKWYR(int *  np, double *  rho, double *  T,
 	    double *  y,
 	    double *  wdot)
 {
-#ifndef AMREX_USE_CUDA
+#if !defined(AMREX_USE_CUDA) && !defined(AMREX_USE_HIP)
     double c[21*(*np)]; /*temporary storage */
     /*See Eq 8 with an extra 1e6 so c goes to SI */
     for (int n=0; n<21; n++) {
@@ -4258,7 +4258,7 @@ void CKNU(int * kdim,  int * nuki)
 }
 
 
-#ifndef AMREX_USE_CUDA
+#if !defined(AMREX_USE_CUDA) && !defined(AMREX_USE_HIP)
 /*Returns a count of species in a reaction, and their indices */
 /*and stoichiometric coefficients. (Eq 50) */
 void CKINU(int * i, int * nspec, int * ki, int * nu)
@@ -6143,7 +6143,7 @@ void CKEQXR(double *  rho, double *  T, double *  x, double *  eqcon)
     /*eqcon[83] *= 1;  */
 }
 
-#ifdef AMREX_USE_CUDA
+#if defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP)
 /*GPU version of productionRate: no more use of thermo namespace vectors */
 /*compute the production rate for each species */
 AMREX_GPU_HOST_DEVICE inline void  productionRate(double * wdot, double * sc, double T)
@@ -7620,7 +7620,7 @@ AMREX_GPU_HOST_DEVICE inline void comp_qfqr(double *  qf, double * qr, double * 
 #endif
 
 
-#ifndef AMREX_USE_CUDA
+#if !defined(AMREX_USE_CUDA) && !defined(AMREX_USE_HIP)
 static double T_save = -1;
 #ifdef _OPENMP
 #pragma omp threadprivate(T_save)
@@ -8691,7 +8691,7 @@ void comp_qfqr(double *  qf, double *  qr, double *  sc, double *  tc, double in
 #endif
 
 
-#ifndef AMREX_USE_CUDA
+#if !defined(AMREX_USE_CUDA) && !defined(AMREX_USE_HIP)
 /*compute the production rate for each species */
 void vproductionRate(int npt, double *  wdot, double *  sc, double *  T)
 {
@@ -10612,7 +10612,7 @@ AMREX_GPU_HOST_DEVICE void SPARSITY_PREPROC_SYST_SIMPLIFIED_CSR(int * colVals, i
 }
 
 
-#ifdef AMREX_USE_CUDA
+#if defined(MREX_USE_CUDA) || defined(AMREX_USE_HIP)
 /*compute the reaction Jacobian on GPU */
 AMREX_GPU_HOST_DEVICE
 void aJacobian(double * J, double * sc, double T, int consP)
@@ -15756,7 +15756,7 @@ return;
 #endif
 
 
-#ifndef AMREX_USE_CUDA
+#if !defined(AMREX_USE_CUDA) && !defined(AMREX_USE_HIP)
 /*compute the reaction Jacobian on CPU */
 void aJacobian(double *  J, double *  sc, double T, int consP)
 {
@@ -25662,7 +25662,7 @@ AMREX_GPU_HOST_DEVICE void progressRate(double *  qdot, double *  sc, double T)
     double tc[] = { log(T), T, T*T, T*T*T, T*T*T*T }; /*temperature cache */
     double invT = 1.0 / tc[1];
 
-#ifndef AMREX_USE_CUDA
+#if !defined(AMREX_USE_CUDA) && !defined(AMREX_USE_HIP)
     if (T != T_save)
     {
         T_save = T;
@@ -25687,7 +25687,7 @@ AMREX_GPU_HOST_DEVICE void progressRateFR(double *  q_f, double *  q_r, double *
 {
     double tc[] = { log(T), T, T*T, T*T*T, T*T*T*T }; /*temperature cache */
     double invT = 1.0 / tc[1];
-#ifndef AMREX_USE_CUDA
+#if !defined(AMREX_USE_CUDA) && !defined(AMREX_USE_HIP)
 
     if (T != T_save)
     {
@@ -28447,7 +28447,7 @@ void atomicWeight(double *  awt)
 
 
 /* get temperature given internal energy in mass units and mass fracs */
-AMREX_GPU_HOST_DEVICE void GET_T_GIVEN_EY(double *  e, double *  y, double *  t, int * ierr)
+AMREX_GPU_DEVICE void GET_T_GIVEN_EY(double *  e, double *  y, double *  t, int * ierr)
 {
 #ifdef CONVERGENCE
     const int maxiter = 5000;
@@ -28497,7 +28497,7 @@ AMREX_GPU_HOST_DEVICE void GET_T_GIVEN_EY(double *  e, double *  y, double *  t,
 }
 
 /* get temperature given enthalpy in mass units and mass fracs */
-AMREX_GPU_HOST_DEVICE void GET_T_GIVEN_HY(double *  h, double *  y, double *  t, int * ierr)
+AMREX_GPU_DEVICE void GET_T_GIVEN_HY(double *  h, double *  y, double *  t, int * ierr)
 {
 #ifdef CONVERGENCE
     const int maxiter = 5000;
