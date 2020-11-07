@@ -1671,7 +1671,7 @@ CKABMS(double *  P, double *  T, double *  y,  double *  abms)
     *abms = result * RT * YOW;
 }
 
-#ifdef AMREX_USE_CUDA
+#if defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP)
 /*GPU version of productionRate: no more use of thermo namespace vectors */
 AMREX_GPU_DEVICE
 AMREX_FORCE_INLINE
@@ -5102,7 +5102,7 @@ AMREX_GPU_DEVICE AMREX_FORCE_INLINE void DWDOT_SIMPLIFIED(double *  J, double * 
     return;
 }
 
-#ifdef AMREX_USE_CUDA
+#if defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP)
 /*compute the reaction Jacobian on GPU */
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 void aJacobian(double * J, double * sc, double T, int consP)

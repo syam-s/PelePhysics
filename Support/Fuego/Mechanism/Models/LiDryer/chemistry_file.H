@@ -9,7 +9,7 @@
 #include <AMReX_Gpu.H>
 
 /* PURE CPU stuff */
-#ifndef AMREX_USE_CUDA
+#if !defined(AMREX_USE_CUDA) && !defined(AMREX_USE_HIP)
 namespace thermo
 {
 
@@ -46,7 +46,7 @@ void CKFINALIZE();
 void atomicWeight(double *  awt);
 /* MISC */
 void CKXNUM(char * line, int * nexp, int * lout, int * nval, double *  rval, int * kerr, int lenline);
-#ifndef AMREX_USE_CUDA
+#if !defined(AMREX_USE_CUDA) && !defined(AMREX_USE_HIP)
 void CKINU(int * i, int * nspec, int * ki, int * nu);
 #endif
 void CKNCF(int * ncf);
@@ -84,7 +84,7 @@ void SPARSITY_PREPROC_SYST_SIMPLIFIED_CSC(int * rowVals, int * colPtrs, int * in
 void SPARSITY_PREPROC_SYST_SIMPLIFIED_CSR(int * colVals, int * rowPtr, int * consP, int base);
 
 /* PROD RATE STUFF */
-#ifndef AMREX_USE_CUDA
+#if !defined(AMREX_USE_CUDA) && !defined(AMREX_USE_HIP)
 void productionRate(double *  wdot, double *  sc, double T);
 void comp_qfqr(double *  q_f, double *  q_r, double *  sc, double *  tc, double invT);
 void comp_k_f(double *  tc, double invT, double *  k_f);

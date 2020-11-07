@@ -1,3 +1,5 @@
+#include <AMReX_Print.H>
+
 #include <math.h>
 #include <iostream>
 #include <cassert>
@@ -8,22 +10,33 @@
 #include <cvode/cvode.h>               /* prototypes for CVODE fcts., consts.  */
 #include <nvector/nvector_serial.h>    /* access to serial N_Vector            */
 #include <sunmatrix/sunmatrix_dense.h> /* access to dense SUNMatrix            */
-#include <nvector/nvector_cuda.h>
-#include <sunmatrix/sunmatrix_cusparse.h>
 #include <sunlinsol/sunlinsol_dense.h> /* access to dense SUNLinearSolver      */
 #include <sunlinsol/sunlinsol_spgmr.h> /* access to SPGMR SUNLinearSolver     */
-#include <sunlinsol/sunlinsol_cusolversp_batchqr.h>
 #include <cvode/cvode_direct.h>        /* access to CVDls interface            */
 #include <sundials/sundials_types.h>   /* defs. of realtype, sunindextype      */
 #include <sundials/sundials_math.h>
-
-#include <AMReX_Print.H>
-
+#ifdef AMREX_USE_CUDA
+#include <nvector/nvector_cuda.h>
+#include <sunmatrix/sunmatrix_cusparse.h>
+#include <sunlinsol/sunlinsol_cusolversp_batchqr.h>
 #include <cuda_runtime.h>
 #include <cublas_v2.h>
 #include <cusolverSp.h>
 #include <cusparse.h>
 #include <cuda_runtime_api.h>
+#elif AMREX_USE_HIP
+#include <nvector/nvector_hip.h>
+#endif
+
+#ifdef AMREX_USE_CUDA
+typedef cudaStream_t DEVICE_STREAM_TYPE;
+typedef cudaError_t  DEVICE_ERROR_TYPE;
+#define DEVICE_SUCCESS cudaSuccess
+#else
+typedef hipStream_t DEVICE_STREAM_TYPE;
+typedef hipError_t  DEVICE_ERROR_TYPE;
+#define DEVICE_SUCCESS hipSuccess
+#endif
 
 /**********************************/
 typedef struct CVodeUserData {
@@ -62,13 +75,15 @@ typedef struct CVodeUserData {
     double* csr_val_d;
     double* csr_jac_d;
     SUNMatrix R = NULL;
+#ifdef AMREX_USE_CUDA
     /* CUDA cusolver */
     void *buffer_qr = NULL;
     csrqrInfo_t info;
     cusparseMatDescr_t descrA;
     cusolverSpHandle_t cusolverHandle;
     cusparseHandle_t cuSPHandle;
-    cudaStream_t stream;
+#endif
+    DEVICE_STREAM_TYPE stream;
     int nbBlocks;
     int nbThreads;
     /* device stuff */
@@ -97,7 +112,7 @@ int react(const amrex::Box& box,
           amrex::Real &dt_react,
           amrex::Real &time,
           const int &cvode_iE,
-          cudaStream_t stream);
+	  DEVICE_STREAM_TYPE stream);
 
 #ifdef AMREX_USE_CUDA
 static int Precond(realtype tn, N_Vector u, N_Vector fu, booleantype jok,
@@ -174,13 +189,12 @@ struct _SUNLinearSolverContent_Dense_custom {
     int                subsys_nnz;
     int                nbBlocks;
     int                nbThreads;
-    cudaStream_t       stream;
+    DEVICE_STREAM_TYPE stream;
 };
 
 typedef struct _SUNLinearSolverContent_Dense_custom *SUNLinearSolverContent_Dense_custom; 
 
-SUNLinearSolver SUNLinSol_dense_custom(N_Vector y, SUNMatrix A, 
-                                       cudaStream_t stream);
+SUNLinearSolver SUNLinSol_dense_custom(N_Vector y, SUNMatrix A, DEVICE_STREAM_TYPE stream);
 
 SUNLinearSolver_Type SUNLinSolGetType_Dense_custom(SUNLinearSolver S); 
 

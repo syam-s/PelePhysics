@@ -5,7 +5,7 @@
 #include "chemistry_K.H"
 
 /* PURE CPU stuff */
-#ifndef AMREX_USE_CUDA
+#if !defined(AMREX_USE_CUDA) && !defined(AMREX_USE_HIP)
 namespace thermo
 {
     double fwd_A[21], fwd_beta[21], fwd_Ea[21];
@@ -594,7 +594,7 @@ void vcomp_wdot(int npt, double *  wdot, double *  mixture, double *  sc,
 
 
 /* INIT and FINALIZE stuff */
-#ifndef AMREX_USE_CUDA
+#if !defined(AMREX_USE_CUDA) && !defined(AMREX_USE_HIP)
 /* Initializes parameter database */
 void CKINIT()
 {
@@ -976,7 +976,7 @@ void CKXNUM(char * line, int * nexp, int * lout, int * nval, double *  rval, int
 }
 
 
-#ifndef AMREX_USE_CUDA
+#if !defined(AMREX_USE_CUDA) && !defined(AMREX_USE_HIP)
 /*Returns a count of species in a reaction, and their indices */
 /*and stoichiometric coefficients. (Eq 50) */
 void CKINU(int * i, int * nspec, int * ki, int * nu)
@@ -2140,7 +2140,7 @@ void SPARSITY_PREPROC_SYST_SIMPLIFIED_CSR(int * colVals, int * rowPtr, int * con
 }
 
 /* PROD RATE STUFF */
-#ifndef AMREX_USE_CUDA
+#if !defined(AMREX_USE_CUDA) && !defined(AMREX_USE_HIP)
 static double T_save = -1;
 #ifdef _OPENMP
 #pragma omp threadprivate(T_save)
