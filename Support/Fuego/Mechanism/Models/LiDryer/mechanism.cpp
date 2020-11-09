@@ -1787,15 +1787,18 @@ void SPARSITY_INFO( int * nJdata, int * consP, int NCELLS)
 
     amrex::Real J_h[100];
 
-    amrex::single_task( 
-        [=] AMREX_GPU_DEVICE () noexcept {
+    amrex::IntVect iv(AMREX_D_DECL(0,0,0));
+    amrex::ParallelFor(amrex::Box(iv,iv),  
+        [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept {
             for (int k=0; k<9; k++) {
                 c_d[k] = 1.0/ 9.000000 ;
             }
             aJacobian(J_d, c_d, 1500.0, *consP);
     });
 
+#if defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP)
     amrex::Gpu::dtoh_memcpy(J_h, J_d, sizeof(J_d));
+#endif
 
     int nJdata_tmp = 0;
     for (int k=0; k<10; k++) {
@@ -1823,15 +1826,18 @@ void SPARSITY_INFO_SYST( int * nJdata, int * consP, int NCELLS)
 
     amrex::Real J_h[100];
 
-    amrex::single_task( 
-        [=] AMREX_GPU_DEVICE () noexcept {
+    amrex::IntVect iv(AMREX_D_DECL(0,0,0));
+    amrex::ParallelFor(amrex::Box(iv,iv),
+        [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept {
             for (int k=0; k<9; k++) {
                 c_d[k] = 1.0/ 9.000000 ;
             }
             aJacobian(J_d, c_d, 1500.0, *consP);
     });
 
+#if defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP)
     amrex::Gpu::dtoh_memcpy(J_h, J_d, sizeof(J_d));
+#endif
 
     int nJdata_tmp = 0;
     for (int k=0; k<10; k++) {
@@ -1863,15 +1869,18 @@ void SPARSITY_INFO_SYST_SIMPLIFIED( int * nJdata, int * consP)
 
     amrex::Real J_h[100];
 
-    amrex::single_task( 
-        [=] AMREX_GPU_DEVICE () noexcept {
+    amrex::IntVect iv(AMREX_D_DECL(0,0,0));
+    amrex::ParallelFor(amrex::Box(iv,iv),
+        [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept {
             for (int k=0; k<9; k++) {
                 c_d[k] = 1.0/ 9.000000 ;
             }
             aJacobian_precond(J_d, c_d, 1500.0, *consP);
     });
 
+#if defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP)
     amrex::Gpu::dtoh_memcpy(J_h, J_d, sizeof(J_d));
+#endif
 
     int nJdata_tmp = 0;
     for (int k=0; k<10; k++) {
